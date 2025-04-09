@@ -1,38 +1,96 @@
-
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3000/api';
-
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: 'http://localhost:5000/api',
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 });
 
-// Service for deposits
+// Deposit Service
 export const depositService = {
-  getAllDeposits: () => api.get('/deposits'),
-  getPendingDeposits: () => api.get('/deposits/pending'),
-  getUserDeposits: (userId) => api.get(`/users/${userId}/deposits`),
-  updateDepositStatus: (depositId, isPending) => api.patch(`/deposits/${depositId}/status`, { isPending }),
+  getAllDeposits: async () => {
+    return await api.get('/deposits');
+  },
+
+  getPendingDeposits: async () => {
+    return await api.get('/deposits/pending');
+  },
+
+  getUserDeposits: async (userId) => {
+    return await api.get(`/users/${userId}/deposits`);
+  },
+
+  updateDepositStatus: async (depositId, isPending) => {
+    return await api.patch(`/deposits/${depositId}/status`, { isPending });
+  },
+
+  createDeposit: async (depositData, image) => {
+    const formData = new FormData();
+    formData.append('userId', depositData.userId);
+    formData.append('amount', depositData.amount);
+    if (image) {
+      formData.append('image', image);
+    }
+
+    return await api.post('/deposits', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
 };
 
-// Service for withdrawals
+// Withdrawal Service
 export const withdrawalService = {
-  getAllWithdrawals: () => api.get('/withdrawals'),
-  getPendingWithdrawals: () => api.get('/withdrawals/pending'),
-  getUserWithdrawals: (userId) => api.get(`/users/${userId}/withdrawals`),
-  getWithdrawalById: (id) => api.get(`/withdrawals/${id}`),
-  updateWithdrawalStatus: (withdrawalId, isPending) => api.patch(`/withdrawals/${withdrawalId}/status`, { isPending }),
-  deleteWithdrawal: (withdrawalId) => api.delete(`/withdrawals/${withdrawalId}`),
+  getAllWithdrawals: async () => {
+    return await api.get('/withdrawals');
+  },
+
+  getPendingWithdrawals: async () => {
+    return await api.get('/withdrawals/pending');
+  },
+
+  getUserWithdrawals: async (userId) => {
+    return await api.get(`/users/${userId}/withdrawals`);
+  },
+
+  updateWithdrawalStatus: async (withdrawalId, isPending) => {
+    return await api.patch(`/withdrawals/${withdrawalId}/status`, { isPending });
+  },
+
+  createWithdrawal: async (withdrawalData) => {
+    return await api.post('/withdrawals', withdrawalData);
+  },
+
+  deleteWithdrawal: async (withdrawalId) => {
+    return await api.delete(`/withdrawals/${withdrawalId}`);
+  }
 };
 
-// Service for users
+// User Service
 export const userService = {
-  getAllUsers: () => api.get('/users'),
-  getUserById: (userId) => api.get(`/users/${userId}`),
-  getUserTransactions: (userId) => api.get(`/users/${userId}/transactions`),
+  setUserPin: async (userId, pin) => {
+    return await api.patch(`/users/${userId}/pin`, { pin });
+  },
+
+  updatePassword: async (userId, currentPassword, newPassword) => {
+    return await api.patch(`/users/${userId}/password`, { currentPassword, newPassword });
+  },
+
+  resetPassword: async (userId, newPassword) => {
+    return await api.patch(`/users/${userId}/reset-password`, { newPassword });
+  },
+
+  getUserTransactions: async (userId) => {
+    return await api.get(`/users/${userId}/transactions`);
+  },
+
+  register: async (userData) => {
+    return await api.post('/users/register', userData);
+  }
 };
 
-export default api;
+export default {
+  depositService,
+  withdrawalService,
+  userService
+};

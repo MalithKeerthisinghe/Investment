@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, Button } from 'react-bootstrap';
 import withdrawalService from '../../services/withdrawalService';
@@ -6,6 +5,7 @@ import DataTable from '../common/DataTable';
 import ConfirmationModal from '../common/ConfirmationModal';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useNavigate } from 'react-router-dom';
+import { getPendingWithdrawals, updateWithdrawalStatus } from '../../services/withdrawalService';
 
 const PendingWithdrawals = () => {
   const navigate = useNavigate();
@@ -18,8 +18,13 @@ const PendingWithdrawals = () => {
   const fetchPendingWithdrawals = async () => {
     try {
       setIsLoading(true);
-      const response = await withdrawalService.getPendingWithdrawals();
-      setPendingWithdrawals(response.data.pendingWithdrawals);
+      const response = await getPendingWithdrawals();
+      
+      // The change is here - match the backend response structure
+      setPendingWithdrawals(response.pendingWithdrawals || []);
+
+       // For debugging - log the response to see its structure
+       console.log('Pending withdrawals response:', response);
     } catch (error) {
       console.error('Error fetching pending withdrawals:', error);
     } finally {
@@ -44,7 +49,7 @@ const PendingWithdrawals = () => {
   const handleApproveReject = async () => {
     try {
       const isPending = actionType === 'reject'; // true for pending/reject, false for approve
-      await withdrawalService.updateWithdrawalStatus(selectedWithdrawal.id, isPending);
+      await updateWithdrawalStatus(selectedWithdrawal.id, isPending);
       
       // Refresh the list
       fetchPendingWithdrawals();

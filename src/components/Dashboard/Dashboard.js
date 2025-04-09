@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import PeopleIcon from '@mui/icons-material/People';
-import './Dashboard.css';
+import './Dashboard.css'; // We'll create this CSS file for additional styling
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -19,61 +19,24 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        // Create an array of promises to fetch all data in parallel
-        const [depositRes, withdrawalRes, userRes] = await Promise.all([
-          depositService.getPendingDeposits(),
-          withdrawalService.getPendingWithdrawals(),
-          userService.getAllUsers()
-        ]);
-
-        // Process deposit data - handle different response structures
-        let pendingDeposits = 0;
-        if (depositRes.data && Array.isArray(depositRes.data)) {
-          pendingDeposits = depositRes.data.length;
-        } else if (depositRes.data && depositRes.data.pendingDeposits) {
-          pendingDeposits = Array.isArray(depositRes.data.pendingDeposits) 
-            ? depositRes.data.pendingDeposits.length 
-            : depositRes.data.pendingDeposits;
-        } else if (Array.isArray(depositRes)) {
-          pendingDeposits = depositRes.length;
-        } else if (typeof depositRes === 'number') {
-          pendingDeposits = depositRes;
-        }
-
-        // Process withdrawal data - handle different response structures
-        let pendingWithdrawals = 0;
-        if (withdrawalRes.data && Array.isArray(withdrawalRes.data)) {
-          pendingWithdrawals = withdrawalRes.data.length;
-        } else if (withdrawalRes.data && withdrawalRes.data.pendingWithdrawals) {
-          pendingWithdrawals = Array.isArray(withdrawalRes.data.pendingWithdrawals) 
-            ? withdrawalRes.data.pendingWithdrawals.length 
-            : withdrawalRes.data.pendingWithdrawals;
-        } else if (Array.isArray(withdrawalRes)) {
-          pendingWithdrawals = withdrawalRes.length;
-        } else if (typeof withdrawalRes === 'number') {
-          pendingWithdrawals = withdrawalRes;
-        }
-
-        // Process user data - handle different response structures
+        // Fetch pending deposits
+        const depositRes = await depositService.getPendingDeposits();
+        const pendingDeposits = depositRes.data.pendingDeposits.length;
+        
+        // Fetch pending withdrawals
+        const withdrawalRes = await withdrawalService.getPendingWithdrawals();
+        const pendingWithdrawals = withdrawalRes.data.pendingWithdrawals.length;
+        
+        // Fetch users (assuming an endpoint exists)
+        // Note: The backend code didn't have a specific endpoint for getting all users
+        // You might need to create one or adapt this code
         let totalUsers = 0;
-        if (userRes.data && Array.isArray(userRes.data)) {
-          totalUsers = userRes.data.length;
-        } else if (userRes.data && userRes.data.users) {
-          totalUsers = Array.isArray(userRes.data.users) 
-            ? userRes.data.users.length 
-            : userRes.data.users;
-        } else if (Array.isArray(userRes)) {
-          totalUsers = userRes.length;
-        } else if (typeof userRes === 'number') {
-          totalUsers = userRes;
-        }
-
-        // For testing/development - use mock data if all values are 0
-        if (pendingDeposits === 0 && pendingWithdrawals === 0 && totalUsers === 0) {
-          console.warn('Using mock data as all fetched values are 0');
-          pendingDeposits = 5;
-          pendingWithdrawals = 3;
-          totalUsers = 120;
+        try {
+          const userRes = await userService.getAllUsers();
+          totalUsers = userRes.data.users.length;
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          totalUsers = 0;
         }
         
         setStats({
@@ -84,16 +47,12 @@ const Dashboard = () => {
         });
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
-        // For development - set mock values when there's an error
-        setStats({
-          pendingDeposits: 5,
-          pendingWithdrawals: 3,
-          totalUsers: 120,
+        setStats(prev => ({
+          ...prev,
           isLoading: false
-        });
+        }));
       }
     };
-    
     fetchDashboardStats();
   }, []);
 

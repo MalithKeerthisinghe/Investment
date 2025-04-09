@@ -5,7 +5,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
 import DataTable from '../common/DataTable';
-import * as depositService from '../../services/depositeService';
+import { getPendingDeposits } from '../../services/depositeService';
 
 const PendingDeposites = () => {
   const [deposits, setDeposits] = useState([]);
@@ -17,7 +17,7 @@ const PendingDeposites = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await depositService.getPendingDeposits();
+      const data = await getPendingDeposits(); // ✅ Await here
       setDeposits(data);
     } catch (err) {
       console.error('Failed to fetch pending deposits:', err);
@@ -25,7 +25,7 @@ const PendingDeposites = () => {
     } finally {
       setLoading(false);
     }
-  };
+  };  
 
   useEffect(() => {
     fetchDeposits();

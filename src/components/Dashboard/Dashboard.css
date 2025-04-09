@@ -1,0 +1,82 @@
+.stat-card {
+    transition: all 0.3s ease;
+    border-left-width: 5px !important;
+    overflow: hidden;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .stat-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover .stat-icon-container {
+    transform: rotate(10deg);
+  }
+  
+  /* Loading animation */
+  .stat-loader {
+    width: 40px;
+    height: 20px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+  }
+  
+  @keyframes loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  
+  /* Custom colors for card borders */
+  .border-primary {
+    border-left-color: #007bff !important;
+  }
+  
+  .border-warning {
+    border-left-color: #ffc107 !important;
+  }
+  
+  .border-success {
+    border-left-color: #28a745 !important;
+  }
+  
+  /* Background colors for icon containers */
+  .bg-primary {
+    background-color: #007bff !important;
+  }
+  
+  .bg-warning {
+    background-color: #ffc107 !important;
+  }
+  
+  .bg-success {
+    background-color: #28a745 !important;
+  }
+  
+  /* Text colors need to be more visible against white background */
+  .text-primary {
+    color: #007bff !important;
+  }
+  
+  .text-warning {
+    color: #ff9800 !important; /* Slightly darker than standard warning for better contrast */
+  }
+  
+  .text-success {
+    color: #28a745 !important;
+  }

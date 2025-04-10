@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Form, InputGroup, Alert, Spinner } from 'react-bootstrap';
-import userService from '../../services/userService';
+import { Card, Button, Form, InputGroup, Alert, Spinner, Row, Col } from 'react-bootstrap';
 import DataTable from '../common/DataTable';
 import { formatDate } from '../../utils/formatters';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const UserList = () => {
   const navigate = useNavigate();
@@ -13,68 +12,40 @@ const UserList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
   
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      setError('');
+      setError(null);
       
-      // In a real implementation, call the actual endpoint
-      const response = await userService.getAllUsers();
-      if (response && response.data && response.data.users) {
-        setUsers(response.data.users);
-      } else {
-        // For demo purposes if the API doesn't return the expected structure
-        setError('Unable to retrieve user data. Using sample data instead.');
-        // Set some dummy data
-        setUsers([
-          {
-            id: 1,
-            name: 'John Doe',
-            email: 'john@example.com',
-            username: 'johndoe',
-            nic_number: '1234567890',
-            created_at: '2023-01-01T00:00:00Z'
-          },
-          {
-            id: 2,
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            username: 'janesmith',
-            nic_number: '0987654321',
-            created_at: '2023-01-02T00:00:00Z'
-          }
-        ]);
+      const response = await axios.get('http://145.223.21.62:5021/api/users', {
+        withCredentials: false,
+      });
+      
+      console.log('API Response:', response.data);
+      
+      let usersArray = [];
+      
+      if (Array.isArray(response.data)) {
+        usersArray = response.data;
+      } else if (response.data && response.data.users && Array.isArray(response.data.users)) {
+        usersArray = response.data.users;
       }
+      
+      setUsers(Array.isArray(usersArray) ? usersArray : []);
+      console.log('Users set to state:', usersArray);
+      
     } catch (error) {
       console.error('Error fetching users:', error);
-      setError('Failed to load users. Using sample data instead.');
-      // Set some dummy data for demonstration purposes
-      setUsers([
-        {
-          id: 1,
-          name: 'John Doe',
-          email: 'john@example.com',
-          username: 'johndoe',
-          nic_number: '1234567890',
-          created_at: '2023-01-01T00:00:00Z'
-        },
-        {
-          id: 2,
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          username: 'janesmith',
-          nic_number: '0987654321',
-          created_at: '2023-01-02T00:00:00Z'
-        }
-      ]);
+      setError('Failed to load users. Please try again.');
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  useEffect(() => {
-    fetchUsers();
-  }, []);
   
   const handleRowClick = (user) => {
     if (user && user.id) {
@@ -149,9 +120,26 @@ const UserList = () => {
         </Alert>
       )}
       
+      {/* User Stats Card */}
+      <Row className="mb-4">
+        <Col md={4}>
+          <Card className="text-center bg-light">
+            <Card.Body>
+              <h6 className="text-muted mb-2">Total Users</h6>
+              <h3>{users.length}</h3>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+      
       <Card>
-        <Card.Header>
-          <Form>
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <span>
+            {searchTerm 
+              ? `Showing ${filteredUsers.length} of ${users.length} users`
+              : `All Users`}
+          </span>
+          <Form className="d-flex justify-content-end">
             <InputGroup>
               <Form.Control
                 placeholder="Search users by name, email, username, or NIC..."

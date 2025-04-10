@@ -1,8 +1,12 @@
 import axios from 'axios';
 
-const instance = axios.create({
-  baseURL: 'http://localhost:5021/api', // ⬅️ Your API root
-  withCredentials: true, // Optional, for cookies/session
+const API = axios.create({
+  baseURL: 'http://145.223.21.62:5021/api',
+  withCredentials: false,
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  timeout: 10000
 });
 
-export default instance;
+export default API;

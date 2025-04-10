@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import PeopleIcon from '@mui/icons-material/People';
-import './Dashboard.css'; // We'll create this CSS file for additional styling
+import './Dashboard.css';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -21,19 +21,42 @@ const Dashboard = () => {
       try {
         // Fetch pending deposits
         const depositRes = await depositService.getPendingDeposits();
-        const pendingDeposits = depositRes.data.pendingDeposits.length;
+        
+        // Safely extract pending deposits count
+        let pendingDeposits = 0;
+        if (depositRes && depositRes.data) {
+          if (Array.isArray(depositRes.data.pendingDeposits)) {
+            pendingDeposits = depositRes.data.pendingDeposits.length;
+          } else if (typeof depositRes.data.pendingDeposits === 'number') {
+            pendingDeposits = depositRes.data.pendingDeposits;
+          } else if (Array.isArray(depositRes.data)) {
+            pendingDeposits = depositRes.data.filter(deposit => deposit.status === 'pending').length;
+          } else if (depositRes.data.count !== undefined) {
+            pendingDeposits = depositRes.data.count;
+          }
+        }
         
         // Fetch pending withdrawals
         const withdrawalRes = await withdrawalService.getPendingWithdrawals();
         const pendingWithdrawals = withdrawalRes.data.pendingWithdrawals.length;
         
-        // Fetch users (assuming an endpoint exists)
-        // Note: The backend code didn't have a specific endpoint for getting all users
-        // You might need to create one or adapt this code
+        // Fetch total users
         let totalUsers = 0;
         try {
           const userRes = await userService.getAllUsers();
-          totalUsers = userRes.data.users.length;
+          
+          // Process the response similar to how it's done in UserList component
+          let usersArray = [];
+          
+          if (Array.isArray(userRes.data)) {
+            usersArray = userRes.data;
+          } else if (userRes.data && typeof userRes.data === 'object') {
+            if (userRes.data.users && Array.isArray(userRes.data.users)) {
+              usersArray = userRes.data.users;
+            }
+          }
+          
+          totalUsers = usersArray.length;
         } catch (error) {
           console.error('Error fetching users:', error);
           totalUsers = 0;
@@ -53,6 +76,7 @@ const Dashboard = () => {
         }));
       }
     };
+    
     fetchDashboardStats();
   }, []);
 

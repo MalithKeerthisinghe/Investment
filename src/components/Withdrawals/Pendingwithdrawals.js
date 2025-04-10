@@ -86,7 +86,13 @@ const PendingWithdrawals = () => {
       title: 'Date',
       render: (withdrawal) => formatDate(withdrawal.created_at),
     },
-  ];
+    // Add the actions column here
+    {
+      key: 'actions',
+      title: 'Actions',
+      render: (withdrawal) => actionColumn(withdrawal)
+    }
+];
   
   const actionColumn = (withdrawal) => (
     <div className="d-flex gap-2">

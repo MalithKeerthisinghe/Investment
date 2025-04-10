@@ -1,129 +1,180 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Chip, Button, Stack, Alert } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-
+import axios from 'axios';
 import DataTable from '../common/DataTable';
-import { getPendingDeposits } from '../../services/depositeService';
+import {
+  CircularProgress,
+  Alert,
+  Button,
+  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography
+} from '@mui/material';
 
-const PendingDeposites = () => {
+const PendingDeposits = () => {
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
-
-  const fetchDeposits = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getPendingDeposits(); // ✅ Await here
-      setDeposits(data);
-    } catch (err) {
-      console.error('Failed to fetch pending deposits:', err);
-      setError('Failed to load pending deposits. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };  
+  const [selectedDeposit, setSelectedDeposit] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     fetchDeposits();
   }, []);
 
-  const handleRowClick = (deposit) => {
-    navigate(`/deposits/${deposit.id}`);
+  const fetchDeposits = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await axios.get('http://145.223.21.62:5021/api/deposits/pending', {
+        withCredentials: false,
+      });
+
+      console.log('API Response:', response.data);
+
+      let depositsArray = [];
+
+      if (Array.isArray(response.data)) {
+        depositsArray = response.data;
+      } else if (response.data?.pendingDeposits && Array.isArray(response.data.pendingDeposits)) {
+        depositsArray = response.data.pendingDeposits;
+      }
+
+      setDeposits(Array.isArray(depositsArray) ? depositsArray : []);
+    } catch (error) {
+      console.error('Error fetching deposits:', error);
+      setError('Failed to load deposits. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!selectedDeposit) return;
+
+    try {
+      await axios.patch(
+        `http://145.223.21.62:5021/api/deposits/${selectedDeposit.id}/status`,
+        { isPending: false },
+        { withCredentials: false }
+      );
+      fetchDeposits();
+    } catch (error) {
+      console.error('Error approving deposit:', error);
+      alert('Failed to approve deposit. Please try again.');
+    } finally {
+      setConfirmOpen(false);
+      setSelectedDeposit(null);
+    }
   };
 
   const columns = [
-    { key: 'id', label: 'ID', minWidth: 100 },
-    { key: 'userName', label: 'User', minWidth: 150 },
-    { 
-      key: 'amount', 
-      label: 'Amount', 
-      minWidth: 120,
-      render: (value, row) => `${value} ${row.currency}`
+    { key: 'id', label: 'ID', minWidth: 80 },
+    { key: 'transaction_id', label: 'Transaction ID', minWidth: 150 },
+    { key: 'username', label: 'Username', minWidth: 120 },
+    {
+      key: 'amount',
+      label: 'Amount',
+      minWidth: 100,
+      render: (value) => `$${parseFloat(value).toFixed(2)}`
     },
-    { 
-      key: 'paymentMethod', 
-      label: 'Payment Method', 
-      minWidth: 150,
-      render: (value) => value.charAt(0).toUpperCase() + value.slice(1)
-    },
-    { 
-      key: 'status', 
-      label: 'Status', 
-      minWidth: 120,
-      render: (value) => (
-        <Chip 
-          label={value} 
-          color={
-            value === 'pending' ? 'warning' : 
-            value === 'completed' ? 'success' : 
-            value === 'failed' ? 'error' : 
-            'default'
-          }
-          size="small"
-        />
-      )
-    },
-    { 
-      key: 'createdAt', 
-      label: 'Date', 
+    {
+      key: 'created_at',
+      label: 'Date',
       minWidth: 150,
       render: (value) => new Date(value).toLocaleString()
     },
     {
+      key: 'image_path',
+      label: 'Receipt',
+      minWidth: 100,
+      render: (value) =>
+        value ? (
+          <a
+            href={`http://145.223.21.62:5021/${value}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#2196f3', textDecoration: 'underline' }}
+          >
+            View
+          </a>
+        ) : (
+          'No receipt'
+        )
+    },
+    {
       key: 'actions',
       label: 'Actions',
-      minWidth: 100,
+      minWidth: 150,
       render: (_, row) => (
-        <Button 
-          variant="outlined" 
+        <Button
+          variant="contained"
+          color="success"
           size="small"
-          startIcon={<VisibilityIcon />}
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/deposits/${row.id}`);
+            setSelectedDeposit(row);
+            setConfirmOpen(true);
           }}
         >
-          View
+          Approve
         </Button>
       )
     }
   ];
 
-  return (
-    <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" component="h1">
-          Pending Deposits
-        </Typography>
-        <Button 
-          variant="outlined" 
-          startIcon={<RefreshIcon />}
-          onClick={fetchDeposits}
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={fetchDeposits}>
+              Retry
+            </Button>
+          }
         >
-          Refresh
-        </Button>
-      </Stack>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
-      )}
+      </Box>
+    );
+  }
 
-      <DataTable 
+  return (
+    <Box p={3}>
+      <DataTable
+        title="Pending Deposits"
         columns={columns}
         data={deposits}
         isLoading={loading}
-        onRowClick={handleRowClick}
         searchEnabled={true}
         searchPlaceholder="Search deposits..."
+        onRowClick={(row) => {
+          console.log('Row clicked:', row);
+        }}
       />
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Approval</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to approve this deposit
+            {selectedDeposit ? ` (ID: ${selectedDeposit.id})?` : '?'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="success" onClick={handleConfirmApprove}>
+            Approve
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-export default PendingDeposites;
+export default PendingDeposits;

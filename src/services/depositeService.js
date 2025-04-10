@@ -4,6 +4,7 @@ import axios from '../utils/api'; // instead of 'axios'
 export const getAllDeposits = async () => {
   try {
     const resps = await axios.get('/api/deposits');
+    console.log('Deposits response:', resps.data); // Log the response for debugging
     return resps.data;
   } catch (error) {
     console.error('Error fetching deposits:', error);
@@ -13,8 +14,13 @@ export const getAllDeposits = async () => {
 
 // Get pending deposits
 export const getPendingDeposits = async () => {
+  console.log('Fetching pending deposits...'); // Log the action for debugging
+  console.log('axios instance:', axios); // Log the axios instance for debugging
   try {
     const resp = await axios.get('/deposits/pending');
+    console.log('Pending deposits response:', resp.data); // Log the response for debugging
+    console.log('Pending deposits response:', resp.data); // Log the response for debugging
+    
     return resp.data;
   } catch (error) {
     console.error('Error fetching pending deposits:', error);
@@ -26,6 +32,7 @@ export const getPendingDeposits = async () => {
 export const getDepositById = async (depositId) => {
   try {
     const resp = await axios.get(`/api/deposits/${depositId}`);
+    console.log(`Deposit ${depositId} response:`, resp.data); // Log the response for debugging
     return resp.data;
   } catch (error) {
     console.error(`Error fetching deposit with ID ${depositId}:`, error);

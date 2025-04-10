@@ -25,18 +25,13 @@ const UserList = () => {
         withCredentials: false,
       });
       
-      console.log('API Response:', response.data);
-      
-      let usersArray = [];
-      
-      if (Array.isArray(response.data)) {
-        usersArray = response.data;
-      } else if (response.data && response.data.users && Array.isArray(response.data.users)) {
-        usersArray = response.data.users;
+      // We know the API returns { users: [...] }
+      if (response.data && response.data.users) {
+        setUsers(response.data.users);
+      } else {
+        setError('Unexpected data format from server');
+        setUsers([]);
       }
-      
-      setUsers(Array.isArray(usersArray) ? usersArray : []);
-      console.log('Users set to state:', usersArray);
       
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -77,27 +72,27 @@ const UserList = () => {
     {
       key: 'name',
       title: 'Name',
-      render: (user) => user.name || 'N/A'
+      render: (row) => row.name || 'N/A'
     },
     {
       key: 'email',
       title: 'Email',
-      render: (user) => user.email || 'N/A'
+      render: (row) => row.email || 'N/A'
     },
     {
       key: 'username',
       title: 'Username',
-      render: (user) => user.username || 'N/A'
+      render: (row) => row.username || 'N/A'
     },
     {
       key: 'nic_number',
       title: 'NIC Number',
-      render: (user) => user.nic_number || 'N/A'
+      render: (row) => row.nic_number || 'N/A'
     },
     {
       key: 'created_at',
       title: 'Registration Date',
-      render: (user) => user.created_at ? formatDate(user.created_at) : 'N/A',
+      render: (row) => row.created_at ? formatDate(row.created_at) : 'N/A',
     },
   ];
   

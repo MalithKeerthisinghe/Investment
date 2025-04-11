@@ -53,20 +53,32 @@ const PendingDeposits = () => {
   const handleConfirmAction = async () => {
     if (!selectedDeposit || !confirmOpen) return;
 
-    const payload =
-      confirmOpen === 'approve'
-        ? { isApproved: true }
-        : { isRejected: true };
+    // Updated payload structure to match backend expectations
+    // isPending: true means the deposit is still pending (rejected)
+    // isPending: false means the deposit is approved
+    const payload = {
+      isPending: confirmOpen === 'reject'
+    };
 
     try {
-      await axios.patch(
+      console.log(`${confirmOpen === 'approve' ? 'Approving' : 'Rejecting'} deposit ${selectedDeposit.id}`, payload);
+      
+      const response = await axios.patch(
         `http://145.223.21.62:5021/api/deposits/${selectedDeposit.id}/status`,
         payload,
         { withCredentials: false }
       );
+      
+      console.log('Response:', response.data);
       fetchDeposits();
     } catch (err) {
       console.error(`Failed to ${confirmOpen} deposit:`, err);
+      
+      // Add more detailed error logging
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+      }
     } finally {
       setConfirmOpen(null);
       setSelectedDeposit(null);

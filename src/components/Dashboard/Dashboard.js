@@ -21,8 +21,8 @@ const Dashboard = () => {
       try {
         // Fetch pending deposits
         const depositRes = await depositService.getPendingDeposits();
-        
-        // Safely extract pending deposits count
+        console.log('Deposit Response:', depositRes.data);
+
         let pendingDeposits = 0;
         if (depositRes && depositRes.data) {
           if (Array.isArray(depositRes.data.pendingDeposits)) {
@@ -30,38 +30,40 @@ const Dashboard = () => {
           } else if (typeof depositRes.data.pendingDeposits === 'number') {
             pendingDeposits = depositRes.data.pendingDeposits;
           } else if (Array.isArray(depositRes.data)) {
-            pendingDeposits = depositRes.data.filter(deposit => deposit.status === 'pending').length;
+            pendingDeposits = depositRes.data.filter(d => d.status === 'pending').length;
           } else if (depositRes.data.count !== undefined) {
             pendingDeposits = depositRes.data.count;
           }
         }
-        
+
         // Fetch pending withdrawals
         const withdrawalRes = await withdrawalService.getPendingWithdrawals();
-        const pendingWithdrawals = withdrawalRes.data.pendingWithdrawals.length;
-        
-        // Fetch total users
-        let totalUsers = 0;
-        try {
-          const userRes = await userService.getAllUsers();
-          
-          // Process the response similar to how it's done in UserList component
-          let usersArray = [];
-          
-          if (Array.isArray(userRes.data)) {
-            usersArray = userRes.data;
-          } else if (userRes.data && typeof userRes.data === 'object') {
-            if (userRes.data.users && Array.isArray(userRes.data.users)) {
-              usersArray = userRes.data.users;
-            }
+        console.log('Withdrawal Response:', withdrawalRes.data);
+
+        let pendingWithdrawals = 0;
+        if (withdrawalRes && withdrawalRes.data) {
+          if (Array.isArray(withdrawalRes.data.pendingWithdrawals)) {
+            pendingWithdrawals = withdrawalRes.data.pendingWithdrawals.length;
+          } else if (Array.isArray(withdrawalRes.data)) {
+            pendingWithdrawals = withdrawalRes.data.filter(w => w.status === 'pending').length;
+          } else if (withdrawalRes.data.count !== undefined) {
+            pendingWithdrawals = withdrawalRes.data.count;
           }
-          
-          totalUsers = usersArray.length;
-        } catch (error) {
-          console.error('Error fetching users:', error);
-          totalUsers = 0;
         }
-        
+
+        // Fetch total users
+        const userRes = await userService.getAllUsers();
+        console.log('User Response:', userRes.data);
+
+        let totalUsers = 0;
+        if (userRes && userRes.data) {
+          if (Array.isArray(userRes.data)) {
+            totalUsers = userRes.data.length;
+          } else if (userRes.data.users && Array.isArray(userRes.data.users)) {
+            totalUsers = userRes.data.users.length;
+          }
+        }
+
         setStats({
           pendingDeposits,
           pendingWithdrawals,
@@ -76,7 +78,7 @@ const Dashboard = () => {
         }));
       }
     };
-    
+
     fetchDashboardStats();
   }, []);
 
@@ -87,7 +89,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          whileHover={{ 
+          whileHover={{
             scale: 1.05,
             boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.1)"
           }}
@@ -97,13 +99,11 @@ const Dashboard = () => {
               <div>
                 <Card.Title className="text-muted">{title}</Card.Title>
                 <div className={`display-4 font-weight-bold text-${color}`}>
-                  {stats.isLoading ? (
-                    <div className="stat-loader"></div>
-                  ) : (
+                  {stats.isLoading ? '...' : (
                     <motion.span
                       initial={{ opacity: 0, scale: 0.5 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ 
+                      transition={{
                         type: "spring",
                         stiffness: 260,
                         damping: 20,
@@ -127,7 +127,7 @@ const Dashboard = () => {
 
   return (
     <div>
-      <motion.h2 
+      <motion.h2
         className="mb-4"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -135,7 +135,7 @@ const Dashboard = () => {
       >
         Dashboard
       </motion.h2>
-      
+
       <Row>
         <StatCard
           title="Pending Deposits"

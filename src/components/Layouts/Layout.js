@@ -16,9 +16,12 @@ import {
   Typography,
   Avatar,
   Menu,
-  MenuItem
+  MenuItem,
+  Tooltip
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -26,12 +29,15 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import RequestQualityIcon from '@mui/icons-material/RequestQuote';
 
-const drawerWidth = 240;
+const fullDrawerWidth = 240;
+const collapsedDrawerWidth = 72;
 
 const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
   const handleDrawerToggle = () => {
@@ -46,34 +52,65 @@ const Layout = ({ children }) => {
     setAnchorEl(null);
   };
 
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
+
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Users', icon: <PersonIcon />, path: '/users' },
-    { text: 'Deposits', icon: <AccountBalanceWalletIcon />, path: '/deposits' },
-    { text: 'Withdrawals', icon: <PaymentsIcon />, path: '/withdrawals' },
+    { text: 'Deposits', icon: <AccountBalanceWalletIcon />, path: '/deposits/pending' },
+    { text: 'Withdrawals', icon: <PaymentsIcon />, path: '/withdrawals/pending' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+    { text: 'KYC', icon: <RequestQualityIcon />, path: '/Kyc' },
   ];
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Admin Panel
-        </Typography>
+      <Toolbar sx={{ justifyContent: 'space-between', px: 1 }}>
+        {collapsed ? (
+          <Tooltip title="Expand">
+            <IconButton onClick={toggleCollapse}>
+              <ChevronRightIcon />
+            </IconButton>
+          </Tooltip>
+        ) : (
+          <>
+            <Typography variant="h6" noWrap>
+              Options
+            </Typography>
+            <Tooltip title="Collapse">
+              <IconButton onClick={toggleCollapse}>
+                <ChevronLeftIcon />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
       </Toolbar>
       <Divider />
       <List>
         {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton 
-              component={Link} 
+          <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              component={Link}
               to={item.path}
               selected={location.pathname === item.path}
+              sx={{
+                minHeight: 48,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                px: 2.5,
+              }}
             >
-              <ListItemIcon>
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: collapsed ? 'auto' : 2,
+                  justifyContent: 'center',
+                }}
+              >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              {!collapsed && <ListItemText primary={item.text} />}
             </ListItemButton>
           </ListItem>
         ))}
@@ -87,8 +124,9 @@ const Layout = ({ children }) => {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { sm: `calc(100% - ${collapsed ? collapsedDrawerWidth : fullDrawerWidth}px)` },
+          ml: { sm: `${collapsed ? collapsedDrawerWidth : fullDrawerWidth}px` },
+          transition: 'width 0.3s ease',
         }}
       >
         <Toolbar>
@@ -101,28 +139,19 @@ const Layout = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems.find(item => item.path === location.pathname)?.text || 'Admin Panel'}
+          <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
+            {menuItems.find((item) => location.pathname.startsWith(item.path))?.text || 'Admin Panel'}
           </Typography>
-          
+
           <IconButton color="inherit">
             <NotificationsIcon />
           </IconButton>
-          
-          <IconButton 
-            size="large" 
-            edge="end" 
-            color="inherit" 
-            onClick={handleProfileMenuOpen}
-          >
+
+          <IconButton size="large" edge="end" color="inherit" onClick={handleProfileMenuOpen}>
             <Avatar sx={{ width: 32, height: 32 }}>A</Avatar>
           </IconButton>
-          
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleProfileMenuClose}
-          >
+
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleProfileMenuClose}>
             <MenuItem onClick={handleProfileMenuClose}>My Profile</MenuItem>
             <MenuItem onClick={handleProfileMenuClose}>
               <ListItemIcon>
@@ -133,22 +162,23 @@ const Layout = ({ children }) => {
           </Menu>
         </Toolbar>
       </AppBar>
-      
+
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
+        sx={{ width: { sm: collapsed ? collapsedDrawerWidth : fullDrawerWidth }, flexShrink: { sm: 0 } }}
+        aria-label="sidebar"
       >
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
+          ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: fullDrawerWidth,
+            },
           }}
         >
           {drawer}
@@ -157,21 +187,27 @@ const Layout = ({ children }) => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: collapsed ? collapsedDrawerWidth : fullDrawerWidth,
+              transition: 'width 0.3s ease',
+              overflowX: 'hidden',
+            },
           }}
           open
         >
           {drawer}
         </Drawer>
       </Box>
-      
+
       <Box
         component="main"
-        sx={{ 
-          flexGrow: 1, 
-          p: 3, 
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          marginTop: '64px'
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          mt: 8,
+          width: { sm: `calc(100% - ${collapsed ? collapsedDrawerWidth : fullDrawerWidth}px)` },
+          transition: 'width 0.3s ease',
         }}
       >
         {children}

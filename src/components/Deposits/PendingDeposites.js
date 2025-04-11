@@ -18,7 +18,7 @@ const PendingDeposits = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDeposit, setSelectedDeposit] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(null); // 'approve' | 'reject' | null
 
   useEffect(() => {
     fetchDeposits();
@@ -33,8 +33,6 @@ const PendingDeposits = () => {
         withCredentials: false,
       });
 
-      console.log('API Response:', response.data);
-
       let depositsArray = [];
 
       if (Array.isArray(response.data)) {
@@ -44,29 +42,33 @@ const PendingDeposits = () => {
       }
 
       setDeposits(Array.isArray(depositsArray) ? depositsArray : []);
-    } catch (error) {
-      console.error('Error fetching deposits:', error);
+    } catch (err) {
+      console.error('Error fetching deposits:', err);
       setError('Failed to load deposits. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConfirmApprove = async () => {
-    if (!selectedDeposit) return;
+  const handleConfirmAction = async () => {
+    if (!selectedDeposit || !confirmOpen) return;
+
+    const payload =
+      confirmOpen === 'approve'
+        ? { isApproved: true }
+        : { isRejected: true };
 
     try {
       await axios.patch(
         `http://145.223.21.62:5021/api/deposits/${selectedDeposit.id}/status`,
-        { isPending: false },
+        payload,
         { withCredentials: false }
       );
       fetchDeposits();
-    } catch (error) {
-      console.error('Error approving deposit:', error);
-      alert('Failed to approve deposit. Please try again.');
+    } catch (err) {
+      console.error(`Failed to ${confirmOpen} deposit:`, err);
     } finally {
-      setConfirmOpen(false);
+      setConfirmOpen(null);
       setSelectedDeposit(null);
     }
   };
@@ -108,20 +110,34 @@ const PendingDeposits = () => {
     {
       key: 'actions',
       label: 'Actions',
-      minWidth: 150,
+      minWidth: 200,
       render: (_, row) => (
-        <Button
-          variant="contained"
-          color="success"
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedDeposit(row);
-            setConfirmOpen(true);
-          }}
-        >
-          Approve
-        </Button>
+        <Box display="flex" gap={1}>
+          <Button
+            variant="contained"
+            color="success"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedDeposit(row);
+              setConfirmOpen('approve');
+            }}
+          >
+            Approve
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedDeposit(row);
+              setConfirmOpen('reject');
+            }}
+          >
+            Reject
+          </Button>
+        </Box>
       )
     }
   ];
@@ -158,18 +174,24 @@ const PendingDeposits = () => {
       />
 
       {/* Confirmation Dialog */}
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>Confirm Approval</DialogTitle>
+      <Dialog open={!!confirmOpen} onClose={() => setConfirmOpen(null)}>
+        <DialogTitle>
+          {confirmOpen === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
+        </DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to approve this deposit
+            Are you sure you want to {confirmOpen} this deposit
             {selectedDeposit ? ` (ID: ${selectedDeposit.id})?` : '?'}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button variant="contained" color="success" onClick={handleConfirmApprove}>
-            Approve
+          <Button onClick={() => setConfirmOpen(null)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color={confirmOpen === 'approve' ? 'success' : 'error'}
+            onClick={handleConfirmAction}
+          >
+            {confirmOpen === 'approve' ? 'Approve' : 'Reject'}
           </Button>
         </DialogActions>
       </Dialog>

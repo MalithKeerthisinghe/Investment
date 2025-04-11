@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -15,6 +14,8 @@ import WithdrawalDetails from './components/Withdrawals/withdrawalDetails';
 import UserList from './components/Users/UserList';
 import UserDetails from './components/Users/UserDetails';
 
+import Kyc from './components/kyc/KycRequests';
+
 function App() {
   return (
     <Router>
@@ -28,8 +29,18 @@ function App() {
             </Layout>
           } 
         />
+
+        {/* New Route for Kyc Page */}
+        <Route 
+          path="/Kyc" 
+          element={
+            <Layout>
+              <Kyc />
+            </Layout>
+          }
+        />
         
-        {/* Deposits Routes */}
+        {/* Other Routes */}
         <Route 
           path="/deposits/pending" 
           element={
@@ -47,7 +58,6 @@ function App() {
           } 
         />
         
-        {/* Withdrawals Routes */}
         <Route 
           path="/withdrawals/pending" 
           element={
@@ -65,7 +75,6 @@ function App() {
           } 
         />
         
-        {/* Users Routes */}
         <Route 
           path="/users" 
           element={
@@ -82,7 +91,7 @@ function App() {
             </Layout>
           } 
         />
-        
+
         {/* Catch-all Route */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

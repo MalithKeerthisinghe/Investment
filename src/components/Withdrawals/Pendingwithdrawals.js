@@ -1,151 +1,194 @@
+// PendingWithdrawals.jsx
 import React, { useState, useEffect } from 'react';
-import { Card, Button } from 'react-bootstrap';
-import withdrawalService from '../../services/withdrawalService';
-import DataTable from '../common/DataTable';
-import ConfirmationModal from '../common/ConfirmationModal';
-import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useNavigate } from 'react-router-dom';
+import {
+    CircularProgress,
+    Alert,
+    Button,
+    Box,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Typography
+} from '@mui/material';
 import { getPendingWithdrawals, updateWithdrawalStatus } from '../../services/withdrawalService';
+import DataTable from '../common/DataTable';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 
 const PendingWithdrawals = () => {
-  const navigate = useNavigate();
-  const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [actionType, setActionType] = useState('');
-  
-  const fetchPendingWithdrawals = async () => {
-    try {
-      setIsLoading(true);
-      const response = await getPendingWithdrawals();
-      
-      // The change is here - match the backend response structure
-      setPendingWithdrawals(response.pendingWithdrawals || []);
+    const navigate = useNavigate();
+    const [withdrawals, setWithdrawals] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(null); // 'approve' | 'reject' | null
 
-       // For debugging - log the response to see its structure
-       console.log('Pending withdrawals response:', response);
-    } catch (error) {
-      console.error('Error fetching pending withdrawals:', error);
-    } finally {
-      setIsLoading(false);
+    useEffect(() => {
+        fetchWithdrawals();
+    }, []);
+
+    const fetchWithdrawals = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await getPendingWithdrawals();
+
+            let withdrawalsArray = [];
+
+            if (Array.isArray(response)) {
+                withdrawalsArray = response;
+            } else if (response?.pendingWithdrawals && Array.isArray(response.pendingWithdrawals)) {
+                withdrawalsArray = response.pendingWithdrawals;
+            }
+
+            console.log('Fetched withdrawals:', withdrawalsArray);
+            setWithdrawals(Array.isArray(withdrawalsArray) ? withdrawalsArray : []);
+        } catch (err) {
+            console.error('Error fetching withdrawals:', err);
+            setError('Failed to load withdrawals. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleConfirmAction = async () => {
+        if (!selectedWithdrawal || !confirmOpen) return;
+
+        const isPending = confirmOpen === 'reject';
+
+        try {
+            console.log(`${confirmOpen === 'approve' ? 'Approving' : 'Rejecting'} withdrawal ${selectedWithdrawal.id}`);
+
+            await updateWithdrawalStatus(selectedWithdrawal.id, isPending);
+
+            fetchWithdrawals();
+
+            alert(`Withdrawal ${confirmOpen === 'approve' ? 'approved' : 'rejected'} successfully!`);
+        } catch (err) {
+            console.error(`Failed to ${confirmOpen} withdrawal:`, err);
+
+            if (err.response) {
+                console.error("Response data:", err.response.data);
+                console.error("Response status:", err.response.status);
+
+                const errorMsg = err.response?.data?.error
+                    ? `${err.response.data.message}: ${err.response.data.error}`
+                    : err.response?.data?.message || 'Failed to update withdrawal status';
+
+                alert(`Error: ${errorMsg}`);
+            } else {
+                alert('Network error. Please try again.');
+            }
+        } finally {
+            setConfirmOpen(null);
+            setSelectedWithdrawal(null);
+        }
+    };
+
+    const columns = [
+        { key: 'id', label: 'ID', minWidth: 80 },
+        { key: 'transaction_id', label: 'Transaction ID', minWidth: 150 },
+        { key: 'username', label: 'Username', minWidth: 120 },
+        {
+            key: 'amount',
+            label: 'Amount',
+            minWidth: 100,
+            render: (withdrawal) => formatCurrency(withdrawal.amount)
+        },
+        {
+            key: 'created_at',
+            label: 'Date',
+            minWidth: 150,
+            render: (withdrawal) => formatDate(withdrawal.created_at)
+        },
+        {
+            key: 'account_holder_name',
+            label: 'Account Holder',
+            minWidth: 150
+        },
+        {
+            key: 'bank_name',
+            label: 'Bank Name',
+            minWidth: 150
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            minWidth: 200,
+            render: (_, row) => (
+                <Box display="flex" gap={1}>
+                    <Button
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWithdrawal(row);
+                            setConfirmOpen('approve');
+                        }}
+                    >
+                        Approve
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedWithdrawal(row);
+                            setConfirmOpen('reject');
+                        }}
+                    >
+                        Reject
+                    </Button>
+                </Box>
+            )
+        }
+    ];
+
+    if (error) {
+        return (
+            <Box p={3}>
+                <Alert severity="error">{error}</Alert>
+            </Box>
+        );
     }
-  };
-  
-  useEffect(() => {
-    fetchPendingWithdrawals();
-  }, []);
-  
-  const handleRowClick = (withdrawal) => {
-    navigate(`/withdrawals/${withdrawal.id}`);
-  };
-  
-  const handleConfirmAction = (withdrawal, type) => {
-    setSelectedWithdrawal(withdrawal);
-    setActionType(type);
-    setShowConfirmModal(true);
-  };
-  
-  const handleApproveReject = async () => {
-    try {
-      const isPending = actionType === 'reject'; // true for pending/reject, false for approve
-      await updateWithdrawalStatus(selectedWithdrawal.id, isPending);
-      
-      // Refresh the list
-      fetchPendingWithdrawals();
-      setShowConfirmModal(false);
-    } catch (error) {
-      console.error(`Error ${actionType === 'approve' ? 'approving' : 'rejecting'} withdrawal:`, error);
-    }
-  };
-  
-  const columns = [
-    {
-      key: 'transaction_id',
-      title: 'Transaction ID',
-    },
-    {
-      key: 'username',
-      title: 'User',
-    },
-    {
-      key: 'amount',
-      title: 'Amount',
-      render: (withdrawal) => formatCurrency(withdrawal.amount),
-    },
-    {
-      key: 'account_holder_name',
-      title: 'Account Holder',
-    },
-    {
-      key: 'bank_name',
-      title: 'Bank',
-    },
-    {
-      key: 'created_at',
-      title: 'Date',
-      render: (withdrawal) => formatDate(withdrawal.created_at),
-    },
-    // Add the actions column here
-    {
-      key: 'actions',
-      title: 'Actions',
-      render: (withdrawal) => actionColumn(withdrawal)
-    }
-];
-  
-  const actionColumn = (withdrawal) => (
-    <div className="d-flex gap-2">
-      <Button 
-        variant="success" 
-        size="sm"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleConfirmAction(withdrawal, 'approve');
-        }}
-      >
-        Approve
-      </Button>
-      <Button 
-        variant="danger" 
-        size="sm"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleConfirmAction(withdrawal, 'reject');
-        }}
-      >
-        Reject
-      </Button>
-    </div>
-  );
-  
-  return (
-    <div>
-      <h2 className="mb-4">Pending Withdrawals</h2>
-      
-      <Card>
-        <Card.Body>
-          <DataTable
-            columns={columns}
-            data={pendingWithdrawals}
-            isLoading={isLoading}
-            actionColumn={actionColumn}
-            onRowClick={handleRowClick}
-          />
-        </Card.Body>
-      </Card>
-      
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        show={showConfirmModal}
-        onHide={() => setShowConfirmModal(false)}
-        onConfirm={handleApproveReject}
-        title={`${actionType === 'approve' ? 'Approve' : 'Reject'} Withdrawal`}
-        message={`Are you sure you want to ${actionType} this withdrawal of ${selectedWithdrawal?.amount && formatCurrency(selectedWithdrawal.amount)} for ${selectedWithdrawal?.username}?`}
-        confirmText={actionType === 'approve' ? 'Approve' : 'Reject'}
-      />
-    </div>
-  );
+
+    return (
+        <Box p={3}>
+            <Typography variant="h4" gutterBottom>Pending Withdrawals</Typography>
+
+            {loading ? (
+                <CircularProgress />
+            ) : (
+                <>
+                    <DataTable columns={columns} data={withdrawals} />
+
+                    <Dialog
+                        open={!!confirmOpen}
+                        onClose={() => setConfirmOpen(null)}
+                    >
+                        <DialogTitle>{`Confirm ${confirmOpen === 'approve' ? 'Approval' : 'Rejection'}`}</DialogTitle>
+                        <DialogContent>
+                            <Typography>
+                                {`Are you sure you want to ${confirmOpen} this withdrawal?`}
+                            </Typography>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setConfirmOpen(null)} color="primary">
+                                Cancel
+                            </Button>
+                            <Button onClick={handleConfirmAction} color={confirmOpen === 'approve' ? "success" : "error"} variant="contained">
+                                {confirmOpen === 'approve' ? 'Approve' : 'Reject'}
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                </>
+            )}
+        </Box>
+    );
 };
 
 export default PendingWithdrawals;

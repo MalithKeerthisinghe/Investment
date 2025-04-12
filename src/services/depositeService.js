@@ -12,11 +12,11 @@ export const getAllDeposits = async () => {
   }
 };
 
-// Get pending deposits - URL FIX HERE
+// Get pending deposits
 export const getPendingDeposits = async () => {
   console.log('Fetching pending deposits...');
   try {
-    // Fixed URL - should have /api prefix
+    // Make sure to use the correct API path
     const resp = await axios.get('/api/deposits/pending');
     console.log('Pending deposits response:', resp.data);
     return resp.data;
@@ -38,15 +38,24 @@ export const getDepositById = async (depositId) => {
   }
 };
 
-// Update deposit status - CRITICAL FIX HERE
+// Update deposit status
 export const updateDepositStatus = async (depositId, isPending) => {
   try {
-    // Changed to PATCH and making sure isPending is sent correctly
-    const resp = await axios.patch(`/api/deposits/${depositId}/status`, { isPending });
-    console.log(`Updated deposit ${depositId} status:`, resp.data);
+    console.log(`Updating deposit ${depositId}, isPending:`, isPending);
+    
+    // Send only the isPending flag as expected by the backend
+    const resp = await axios.patch(`/api/deposits/${depositId}/status`, {
+      isPending
+    });
+    
+    console.log(`Deposit ${depositId} status updated:`, resp.data);
     return resp.data;
   } catch (error) {
     console.error(`Error updating deposit status for ID ${depositId}:`, error);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    }
     throw error;
   }
 };

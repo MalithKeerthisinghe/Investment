@@ -30,6 +30,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import RequestQualityIcon from '@mui/icons-material/RequestQuote';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const fullDrawerWidth = 240;
 const collapsedDrawerWidth = 72;
@@ -63,6 +64,7 @@ const Layout = ({ children }) => {
     { text: 'Withdrawals', icon: <PaymentsIcon />, path: '/withdrawals/pending' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
     { text: 'KYC', icon: <RequestQualityIcon />, path: '/Kyc' },
+    { text: 'Admin', icon: <AdminPanelSettingsIcon />, path: '/admin' }, // ✅ Admin added
   ];
 
   const drawer = (
@@ -140,7 +142,7 @@ const Layout = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-            {menuItems.find((item) => location.pathname.startsWith(item.path))?.text || 'Admin Panel'}
+            {menuItems.find((item) => location.pathname === item.path)?.text || 'Admin Panel'}
           </Typography>
 
           <IconButton color="inherit">

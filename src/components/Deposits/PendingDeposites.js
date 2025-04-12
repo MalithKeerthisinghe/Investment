@@ -41,6 +41,7 @@ const PendingDeposits = () => {
         depositsArray = response.data.pendingDeposits;
       }
 
+      console.log('Fetched deposits:', depositsArray);
       setDeposits(Array.isArray(depositsArray) ? depositsArray : []);
     } catch (err) {
       console.error('Error fetching deposits:', err);
@@ -53,31 +54,38 @@ const PendingDeposits = () => {
   const handleConfirmAction = async () => {
     if (!selectedDeposit || !confirmOpen) return;
 
-    // Updated payload structure to match backend expectations
-    // isPending: true means the deposit is still pending (rejected)
-    // isPending: false means the deposit is approved
-    const payload = {
-      isPending: confirmOpen === 'reject'
-    };
+    const isPending = confirmOpen === 'reject';
 
     try {
-      console.log(`${confirmOpen === 'approve' ? 'Approving' : 'Rejecting'} deposit ${selectedDeposit.id}`, payload);
+      console.log(`${confirmOpen === 'approve' ? 'Approving' : 'Rejecting'} deposit ${selectedDeposit.depositId}`);
       
+      // Send only the isPending flag, which is what the backend expects
       const response = await axios.patch(
-        `http://145.223.21.62:5021/api/deposits/${selectedDeposit.id}/status`,
-        payload,
+        `http://145.223.21.62:5021/api/deposits/${selectedDeposit.depositId}/status`,
+        { isPending },
         { withCredentials: false }
       );
       
       console.log('Response:', response.data);
       fetchDeposits();
+      
+      // Show success message
+      alert(`Deposit ${confirmOpen === 'approve' ? 'approved' : 'rejected'} successfully!`);
     } catch (err) {
       console.error(`Failed to ${confirmOpen} deposit:`, err);
       
-      // Add more detailed error logging
       if (err.response) {
         console.error("Response data:", err.response.data);
         console.error("Response status:", err.response.status);
+        
+        // Format error message for display
+        const errorMsg = err.response?.data?.error 
+          ? `${err.response.data.message}: ${err.response.data.error}`
+          : err.response?.data?.message || 'Failed to update deposit status';
+        
+        alert(`Error: ${errorMsg}`);
+      } else {
+        alert('Network error. Please try again.');
       }
     } finally {
       setConfirmOpen(null);
@@ -195,6 +203,12 @@ const PendingDeposits = () => {
             Are you sure you want to {confirmOpen} this deposit
             {selectedDeposit ? ` (ID: ${selectedDeposit.id})?` : '?'}
           </Typography>
+          {selectedDeposit && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Username: {selectedDeposit.username}<br />
+              Amount: ${parseFloat(selectedDeposit.amount).toFixed(2)}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(null)}>Cancel</Button>

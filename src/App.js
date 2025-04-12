@@ -13,86 +13,28 @@ import PendingWithdrawals from './components/Withdrawals/Pendingwithdrawals';
 import WithdrawalDetails from './components/Withdrawals/withdrawalDetails';
 import UserList from './components/Users/UserList';
 import UserDetails from './components/Users/UserDetails';
-
 import Kyc from './components/kyc/KycRequests';
+import AdminPage from './components/Users/Admin'; // ✅ Import AdminPage
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route 
-          path="/dashboard" 
-          element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          } 
-        />
+        
+        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+        <Route path="/Kyc" element={<Layout><Kyc /></Layout>} />
+        <Route path="/deposits/pending" element={<Layout><PendingDeposits /></Layout>} />
+        <Route path="/deposits/:id" element={<Layout><DepositDetails /></Layout>} />
+        <Route path="/withdrawals/pending" element={<Layout><PendingWithdrawals /></Layout>} />
+        <Route path="/withdrawals/:id" element={<Layout><WithdrawalDetails /></Layout>} />
+        <Route path="/users" element={<Layout><UserList /></Layout>} />
+        <Route path="/users/:id" element={<Layout><UserDetails /></Layout>} />
+        
+        {/* ✅ New Admin Route */}
+        <Route path="/admin" element={<Layout><AdminPage /></Layout>} />
 
-        {/* New Route for Kyc Page */}
-        <Route 
-          path="/Kyc" 
-          element={
-            <Layout>
-              <Kyc />
-            </Layout>
-          }
-        />
-        
-        {/* Other Routes */}
-        <Route 
-          path="/deposits/pending" 
-          element={
-            <Layout>
-              <PendingDeposits />
-            </Layout>
-          } 
-        />
-        <Route 
-          path="/deposits/:id" 
-          element={
-            <Layout>
-              <DepositDetails />
-            </Layout>
-          } 
-        />
-        
-        <Route 
-          path="/withdrawals/pending" 
-          element={
-            <Layout>
-              <PendingWithdrawals />
-            </Layout>
-          } 
-        />
-        <Route 
-          path="/withdrawals/:id" 
-          element={
-            <Layout>
-              <WithdrawalDetails />
-            </Layout>
-          } 
-        />
-        
-        <Route 
-          path="/users" 
-          element={
-            <Layout>
-              <UserList />
-            </Layout>
-          } 
-        />
-        <Route 
-          path="/users/:id" 
-          element={
-            <Layout>
-              <UserDetails />
-            </Layout>
-          } 
-        />
-
-        {/* Catch-all Route */}
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>

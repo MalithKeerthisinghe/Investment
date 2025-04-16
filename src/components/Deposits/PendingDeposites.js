@@ -1,3 +1,4 @@
+// PendingDeposits.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import DataTable from '../common/DataTable';
@@ -12,6 +13,7 @@ import {
   DialogActions,
   Typography
 } from '@mui/material';
+import { getPendingDeposits, updateDepositStatus } from '../../services/depositeService';
 
 const PendingDeposits = () => {
   const [deposits, setDeposits] = useState([]);
@@ -29,16 +31,15 @@ const PendingDeposits = () => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get('http://145.223.21.62:5021/api/deposits/pending', {
-        withCredentials: false,
-      });
+      // Use your existing service function
+      const response = await getPendingDeposits();
 
       let depositsArray = [];
 
-      if (Array.isArray(response.data)) {
-        depositsArray = response.data;
-      } else if (response.data?.pendingDeposits && Array.isArray(response.data.pendingDeposits)) {
-        depositsArray = response.data.pendingDeposits;
+      if (Array.isArray(response)) {
+        depositsArray = response;
+      } else if (response?.pendingDeposits && Array.isArray(response.pendingDeposits)) {
+        depositsArray = response.pendingDeposits;
       }
 
       console.log('Fetched deposits:', depositsArray);
@@ -57,16 +58,12 @@ const PendingDeposits = () => {
     const isPending = confirmOpen === 'reject';
 
     try {
-      console.log(`${confirmOpen === 'approve' ? 'Approving' : 'Rejecting'} deposit ${selectedDeposit.depositId}`);
+      console.log(`${confirmOpen === 'approve' ? 'Approving' : 'Rejecting'} deposit ${selectedDeposit.id}`);
       
-      // Send only the isPending flag, which is what the backend expects
-      const response = await axios.patch(
-        `http://145.223.21.62:5021/api/deposits/${selectedDeposit.depositId}/status`,
-        { isPending },
-        { withCredentials: false }
-      );
+      // Using the service function directly, matching the withdrawal pattern
+      await updateDepositStatus(selectedDeposit.id, isPending);
       
-      console.log('Response:', response.data);
+      // Refresh the list
       fetchDeposits();
       
       // Show success message
@@ -191,9 +188,7 @@ const PendingDeposits = () => {
         onRowClick={(row) => {
           console.log('Row clicked:', row);
         }}
-      />
-
-      {/* Confirmation Dialog */}
+      />... {/* Confirmation Dialog */}
       <Dialog open={!!confirmOpen} onClose={() => setConfirmOpen(null)}>
         <DialogTitle>
           {confirmOpen === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}

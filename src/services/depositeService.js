@@ -1,23 +1,32 @@
-import axios from '../utils/api'; // Custom axios instance
+// depositeService.js
+import axios from 'axios';
+
+// Create an API client with the correct base URL
+const api = axios.create({
+  baseURL: 'http://145.223.21.62:5021/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 // Get all deposits
 export const getAllDeposits = async () => {
   try {
-    const resps = await axios.get('/api/deposits');
-    console.log('Deposits response:', resps.data);
-    return resps.data;
+    const resp = await api.get('/deposits');
+    console.log('Deposits response:', resp.data);
+    return resp.data;
   } catch (error) {
     console.error('Error fetching deposits:', error);
     throw error;
   }
 };
 
-// Get pending deposits
+// Get pending deposits 
 export const getPendingDeposits = async () => {
   console.log('Fetching pending deposits...');
   try {
     // Make sure to use the correct API path
-    const resp = await axios.get('/api/deposits/pending');
+    const resp = await api.get('/deposits/pending');
     console.log('Pending deposits response:', resp.data);
     return resp.data;
   } catch (error) {
@@ -29,7 +38,7 @@ export const getPendingDeposits = async () => {
 // Get deposit by ID
 export const getDepositById = async (depositId) => {
   try {
-    const resp = await axios.get(`/api/deposits/${depositId}`);
+    const resp = await api.get(`/deposits/${depositId}`);
     console.log(`Deposit ${depositId} response:`, resp.data);
     return resp.data;
   } catch (error) {
@@ -38,24 +47,20 @@ export const getDepositById = async (depositId) => {
   }
 };
 
-// Update deposit status
+// Update deposit status - matches the pattern used in withdrawalService
 export const updateDepositStatus = async (depositId, isPending) => {
   try {
-    console.log(`Updating deposit ${depositId}, isPending:`, isPending);
+    // Validate depositId
+    if (!depositId) {
+      throw new Error('Deposit ID is required');
+    }
     
-    // Send only the isPending flag as expected by the backend
-    const resp = await axios.patch(`/api/deposits/${depositId}/status`, {
-      isPending
-    });
+    console.log(`Updating deposit ${depositId} status to isPending=${isPending}`);
     
-    console.log(`Deposit ${depositId} status updated:`, resp.data);
+    const resp = await api.patch(`/deposits/${depositId}/status`, { isPending });
     return resp.data;
   } catch (error) {
     console.error(`Error updating deposit status for ID ${depositId}:`, error);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-    }
     throw error;
   }
 };
@@ -63,7 +68,7 @@ export const updateDepositStatus = async (depositId, isPending) => {
 // Add new deposit
 export const addDeposit = async (depositData) => {
   try {
-    const resp = await axios.post('/api/deposits', depositData);
+    const resp = await api.post('/deposits', depositData);
     return resp.data;
   } catch (error) {
     console.error('Error adding new deposit:', error);

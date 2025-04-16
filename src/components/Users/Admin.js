@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styled from 'styled-components';
-import { FiUser, FiDollarSign, FiTrendingUp, FiActivity, FiClock } from 'react-icons/fi';
+import { FiTrendingUp, FiActivity, FiClock, FiCreditCard, FiUser, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import AdminBankDetails from './AdminBankDetails';
 
 // Styled components
 const Container = styled.div`
@@ -149,11 +150,19 @@ const ListItemValue = styled.span`
   color: #2d3748;
 `;
 
-const Divider = styled(motion.hr)`
-  border: none;
-  height: 1px;
-  background: linear-gradient(to right, transparent, #e2e8f0, transparent);
-  margin: 2rem 0;
+const CurrentValueCard = styled.div`
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+`;
+
+const CurrentValueText = styled.p`
+  color: #4a5568;
+  font-size: 1rem;
+  margin: 0.5rem 0;
 `;
 
 const LoadingSpinner = styled.div`
@@ -170,35 +179,110 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+const TabContainer = styled.div`
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f7fafc;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: #cbd5e0;
+    border-radius: 4px;
+  }
+`;
+
+const Tab = styled.button`
+  padding: 1rem 1.5rem;
+  border: none;
+  background: none;
+  color: ${props => props.$active ? '#4299e1' : '#718096'};
+  font-weight: ${props => props.$active ? '600' : '500'};
+  font-size: 1rem;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: ${props => props.$active ? '#4299e1' : 'transparent'};
+    transition: all 0.2s ease;
+  }
+  
+  &:hover {
+    color: ${props => props.$active ? '#4299e1' : '#4a5568'};
+  }
+  
+  &:focus {
+    outline: none;
+  }
+`;
+
+const TabIcon = styled.span`
+  margin-right: 0.5rem;
+`;
+
+const HistorySection = styled(motion.div)`
+  margin-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.5rem;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 2rem 0;
+  color: #718096;
+`;
+
 const Admin = () => {
-  const [depositData, setDepositData] = useState({ userId: '', amount: '', coin: '' });
-  const [coinValueData, setCoinValueData] = useState({ coin: '', value: '' });
+  const [activeTab, setActiveTab] = useState('coinValue');
+  const [coinValueData, setCoinValueData] = useState({ value: '' });
+  const [currentCoinValue, setCurrentCoinValue] = useState(null);
   const [coinHistory, setCoinHistory] = useState([]);
-  const [commissionData, setCommissionData] = useState({ userId: '' });
-  const [commissionHistory, setCommissionHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState({
-    deposit: false,
+    currentValue: false,
     coinValue: false,
     coinHistory: false,
-    commissionHistory: false
   });
 
-  const handleCreateDeposit = async () => {
-    setLoading({...loading, deposit: true});
+  // Backend base URL
+  const BASE_URL = 'http://145.223.21.62:5021';
+  // Hardcoded adminId (replace with auth context if available)
+  const adminId = 1;
+
+  // Fetch current coin value on mount
+  useEffect(() => {
+    fetchCurrentCoinValue();
+  }, []);
+
+  const fetchCurrentCoinValue = async () => {
+    setLoading({ ...loading, currentValue: true });
     try {
-      await axios.post('/admin/deposit', depositData);
-      toast.success('Deposit created successfully!', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
+      const res = await axios.get(`${BASE_URL}/api/coin-values/current`);
+      setCurrentCoinValue(res.data.coinValue);
+      toast.info(`Current coin value: LKR ${parseFloat(res.data.coinValue.lkrValue).toFixed(2)}`, {
+        position: 'top-right',
+        autoClose: 2000,
+        hideProgressBar: true,
       });
-      setDepositData({ userId: '', amount: '', coin: '' });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error creating deposit', {
-        position: "top-right",
+      setCurrentCoinValue(null);
+      toast.error(err.response?.data?.message || 'Error fetching current coin value', {
+        position: 'top-right',
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -206,26 +290,43 @@ const Admin = () => {
         draggable: true,
       });
     } finally {
-      setLoading({...loading, deposit: false});
+      setLoading({ ...loading, currentValue: false });
     }
   };
 
   const handleSetCoinValue = async () => {
-    setLoading({...loading, coinValue: true});
-    try {
-      await axios.post('/coin/set-value', coinValueData);
-      toast.success('Coin value updated successfully!', {
-        position: "top-right",
+    const value = parseFloat(coinValueData.value);
+    if (isNaN(value) || value <= 0) {
+      toast.error('Please enter a valid positive value', {
+        position: 'top-right',
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
       });
-      setCoinValueData({ coin: '', value: '' });
+      return;
+    }
+
+    setLoading({ ...loading, coinValue: true });
+    try {
+      const response = await axios.post(`${BASE_URL}/api/coin-values`, {
+        lkrValue: value,
+        adminId,
+      });
+      toast.success(response.data.message || 'Coin value updated successfully!', {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      setCoinValueData({ value: '' });
+      fetchCurrentCoinValue();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error setting coin value', {
-        position: "top-right",
+        position: 'top-right',
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -233,23 +334,32 @@ const Admin = () => {
         draggable: true,
       });
     } finally {
-      setLoading({...loading, coinValue: false});
+      setLoading({ ...loading, coinValue: false });
     }
   };
 
+  const handleViewHistory = async () => {
+    if (coinHistory.length === 0 || !showHistory) {
+      await fetchCoinHistory();
+    }
+    setShowHistory(!showHistory);
+  };
+
   const fetchCoinHistory = async () => {
-    setLoading({...loading, coinHistory: true});
+    setLoading({ ...loading, coinHistory: true });
     try {
-      const res = await axios.get(`/coin/value-history?coin=${coinValueData.coin}`);
-      setCoinHistory(res.data);
-      toast.info(`Fetched ${res.data.length} historical records`, {
-        position: "top-right",
+      const res = await axios.get(`${BASE_URL}/api/coin-values/history`);
+      // The API returns { coinValues: [...] } structure
+      const historyData = res.data.coinValues || [];
+      setCoinHistory(historyData);
+      toast.info(`Fetched ${historyData.length} historical records`, {
+        position: 'top-right',
         autoClose: 2000,
         hideProgressBar: true,
       });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error fetching coin history', {
-        position: "top-right",
+        position: 'top-right',
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -258,32 +368,7 @@ const Admin = () => {
       });
       setCoinHistory([]);
     } finally {
-      setLoading({...loading, coinHistory: false});
-    }
-  };
-
-  const fetchCommissionHistory = async () => {
-    setLoading({...loading, commissionHistory: true});
-    try {
-      const res = await axios.get(`/admin/user-commission-history?user_id=${commissionData.userId}`);
-      setCommissionHistory(res.data);
-      toast.info(`Found ${res.data.length} commission records`, {
-        position: "top-right",
-        autoClose: 2000,
-        hideProgressBar: true,
-      });
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error fetching commission history', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-      setCommissionHistory([]);
-    } finally {
-      setLoading({...loading, commissionHistory: false});
+      setLoading({ ...loading, coinHistory: false });
     }
   };
 
@@ -294,209 +379,168 @@ const Admin = () => {
         Admin Dashboard
       </Title>
       <ToastContainer />
+
+      <TabContainer>
+        <Tab 
+          $active={activeTab === 'coinValue'} 
+          onClick={() => setActiveTab('coinValue')}
+        >
+          <TabIcon><FiTrendingUp /></TabIcon>
+          Coin Values
+        </Tab>
+        <Tab 
+          $active={activeTab === 'bankDetails'} 
+          onClick={() => setActiveTab('bankDetails')}
+        >
+          <TabIcon><FiCreditCard /></TabIcon>
+          Bank Details
+        </Tab>
+      </TabContainer>
       
-      <Section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <Subtitle>
-          <FiDollarSign />
-          Create Deposit
-        </Subtitle>
-        
-        <InputGroup>
-          <InputLabel>User ID</InputLabel>
-          <InputIcon><FiUser /></InputIcon>
-          <Input 
-            placeholder="Enter user ID" 
-            value={depositData.userId}
-            onChange={e => setDepositData({ ...depositData, userId: e.target.value })} 
-          />
-        </InputGroup>
-        
-        <InputGroup>
-          <InputLabel>Amount</InputLabel>
-          <InputIcon><FiDollarSign /></InputIcon>
-          <Input 
-            placeholder="Enter amount" 
-            type="number"
-            value={depositData.amount}
-            onChange={e => setDepositData({ ...depositData, amount: e.target.value })} 
-          />
-        </InputGroup>
-        
-        <InputGroup>
-          <InputLabel>Coin Type</InputLabel>
-          <InputIcon><FiDollarSign /></InputIcon>
-          <Input 
-            placeholder="Enter coin symbol" 
-            value={depositData.coin}
-            onChange={e => setDepositData({ ...depositData, coin: e.target.value })} 
-          />
-        </InputGroup>
-        
-        <Button 
-          onClick={handleCreateDeposit}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          disabled={!depositData.userId || !depositData.amount || !depositData.coin || loading.deposit}
-        >
-          {loading.deposit ? <><LoadingSpinner /> Processing...</> : 'Create Deposit'}
-        </Button>
-      </Section>
-
-      <Divider />
-
-      <Section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <Subtitle>
-          <FiTrendingUp />
-          Coin Value Management
-        </Subtitle>
-        
-        <InputGroup>
-          <InputLabel>Coin Symbol</InputLabel>
-          <InputIcon><FiDollarSign /></InputIcon>
-          <Input 
-            placeholder="Enter coin symbol" 
-            value={coinValueData.coin}
-            onChange={e => setCoinValueData({ ...coinValueData, coin: e.target.value })} 
-          />
-        </InputGroup>
-        
-        <InputGroup>
-          <InputLabel>New Value</InputLabel>
-          <InputIcon><FiDollarSign /></InputIcon>
-          <Input 
-            placeholder="Enter new value" 
-            type="number"
-            step="0.000001"
-            value={coinValueData.value}
-            onChange={e => setCoinValueData({ ...coinValueData, value: e.target.value })} 
-          />
-        </InputGroup>
-        
-        <div>
-          <Button 
-            onClick={handleSetCoinValue}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            disabled={!coinValueData.coin || !coinValueData.value || loading.coinValue}
+      <AnimatePresence mode="wait">
+        {activeTab === 'coinValue' && (
+          <Section
+            key="coinValue"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
           >
-            {loading.coinValue ? <><LoadingSpinner /> Updating...</> : 'Set Coin Value'}
-          </Button>
-          
-          <SecondaryButton 
-            onClick={fetchCoinHistory}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            disabled={!coinValueData.coin || loading.coinHistory}
+            <Subtitle>
+              <FiTrendingUp />
+              Coin Value Management
+            </Subtitle>
+
+            <CurrentValueCard>
+              {loading.currentValue ? (
+                <CurrentValueText>Loading current value...</CurrentValueText>
+              ) : currentCoinValue ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <CurrentValueText>
+                    Value: LKR {parseFloat(currentCoinValue.lkrValue).toFixed(2)}
+                  </CurrentValueText>
+                  <CurrentValueText>
+                    Updated: {new Date(currentCoinValue.updatedAt).toLocaleString()}
+                  </CurrentValueText>
+                  <CurrentValueText>
+                    By: {currentCoinValue.updatedByName}
+                  </CurrentValueText>
+                </motion.div>
+              ) : (
+                <CurrentValueText>No value available</CurrentValueText>
+              )}
+            </CurrentValueCard>
+            
+            <InputGroup>
+              <InputLabel>New Value (LKR)</InputLabel>
+              <InputIcon><FiTrendingUp /></InputIcon>
+              <Input 
+                placeholder="Enter new value" 
+                type="number"
+                step="0.01"
+                value={coinValueData.value}
+                onChange={e => setCoinValueData({ ...coinValueData, value: e.target.value })} 
+              />
+            </InputGroup>
+            
+            <div>
+              <Button 
+                onClick={handleSetCoinValue}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={!coinValueData.value || loading.coinValue}
+              >
+                {loading.coinValue ? <><LoadingSpinner /> Updating...</> : 'Set Coin Value'}
+              </Button>
+              
+              <SecondaryButton 
+                onClick={handleViewHistory}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={loading.coinHistory}
+              >
+                {loading.coinHistory ? (
+                  <><LoadingSpinner /> Fetching...</>
+                ) : (
+                  <>
+                    {showHistory ? <FiChevronUp style={{ marginRight: '4px' }} /> : <FiChevronDown style={{ marginRight: '4px' }} />}
+                    {showHistory ? 'Hide History' : 'View History'}
+                  </>
+                )}
+              </SecondaryButton>
+            </div>
+            
+            <AnimatePresence>
+              {showHistory && (
+                <HistorySection
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Subtitle>
+                    <FiClock />
+                    Value History
+                  </Subtitle>
+                  
+                  {coinHistory.length > 0 ? (
+                    <List>
+                      <AnimatePresence>
+                        {coinHistory.map((item, i) => (
+                          <ListItem
+                            key={item.id || i}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.1, duration: 0.3 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <ListItemDate>
+                              {new Date(item.updatedAt).toLocaleString()}
+                            </ListItemDate>
+                            <div>
+                              <ListItemValue>
+                                LKR {parseFloat(item.lkrValue).toFixed(2)}
+                              </ListItemValue>
+                              <span style={{ fontSize: '0.75rem', color: '#718096', marginLeft: '0.5rem' }}>
+                                By: {item.updatedByName}
+                              </span>
+                            </div>
+                          </ListItem>
+                        ))}
+                      </AnimatePresence>
+                    </List>
+                  ) : (
+                    <EmptyState>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        No history records available
+                      </motion.p>
+                    </EmptyState>
+                  )}
+                </HistorySection>
+              )}
+            </AnimatePresence>
+          </Section>
+        )}
+        {activeTab === 'bankDetails' && (
+          <motion.div
+            key="bankDetails"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
           >
-            {loading.coinHistory ? <><LoadingSpinner /> Fetching...</> : 'View History'}
-          </SecondaryButton>
-        </div>
-        
-        <AnimatePresence>
-          {coinHistory.length > 0 && (
-            <>
-              <Subtitle style={{ marginTop: '2rem' }}>
-                <FiClock />
-                Value History for {coinValueData.coin.toUpperCase()}
-              </Subtitle>
-              <List>
-                <AnimatePresence>
-                  {coinHistory.map((item, i) => (
-                    <ListItem
-                      key={i}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <ListItemDate>
-                        {new Date(item.date).toLocaleString()}
-                      </ListItemDate>
-                      <ListItemValue>
-                        ${parseFloat(item.value).toFixed(6)}
-                      </ListItemValue>
-                    </ListItem>
-                  ))}
-                </AnimatePresence>
-              </List>
-            </>
-          )}
-        </AnimatePresence>
-      </Section>
-
-      <Divider />
-
-      <Section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <Subtitle>
-          <FiUser />
-          User Commission History
-        </Subtitle>
-        
-        <InputGroup>
-          <InputLabel>User ID</InputLabel>
-          <InputIcon><FiUser /></InputIcon>
-          <Input 
-            placeholder="Enter user ID" 
-            value={commissionData.userId}
-            onChange={e => setCommissionData({ ...commissionData, userId: e.target.value })} 
-          />
-        </InputGroup>
-        
-        <Button 
-          onClick={fetchCommissionHistory}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          disabled={!commissionData.userId || loading.commissionHistory}
-        >
-          {loading.commissionHistory ? <><LoadingSpinner /> Fetching...</> : 'Get Commission History'}
-        </Button>
-        
-        <AnimatePresence>
-          {commissionHistory.length > 0 && (
-            <>
-              <Subtitle style={{ marginTop: '2rem' }}>
-                <FiClock />
-                Commission Records
-              </Subtitle>
-              <List>
-                <AnimatePresence>
-                  {commissionHistory.map((item, i) => (
-                    <ListItem
-                      key={i}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <div>
-                        <ListItemDate>
-                          {new Date(item.date).toLocaleString()}
-                        </ListItemDate>
-                        <div style={{ textTransform: 'capitalize' }}>{item.type}</div>
-                      </div>
-                      <ListItemValue>
-                        ${parseFloat(item.amount).toFixed(2)}
-                      </ListItemValue>
-                    </ListItem>
-                  ))}
-                </AnimatePresence>
-              </List>
-            </>
-          )}
-        </AnimatePresence>
-      </Section>
+            <AdminBankDetails />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Container>
   );
 };

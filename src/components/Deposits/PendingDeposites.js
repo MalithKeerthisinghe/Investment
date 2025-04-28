@@ -113,7 +113,7 @@ const PendingDeposits = () => {
       render: (value) =>
         value ? (
           <a
-            href={`http://145.223.21.62:5021/${value}`}
+            href={`http://151.106.125.212:5021/${value}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: '#2196f3', textDecoration: 'underline' }}

@@ -104,7 +104,7 @@ const KycRequests = () => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get('http://145.223.21.62:5021/api/kyc/pending', {
+      const response = await axios.get('http://151.106.125.212:5021/api/kyc/pending', {
         withCredentials: false,
       });
 
@@ -149,7 +149,7 @@ const KycRequests = () => {
         console.log(`KYC request ${selectedRequest.id} ${actionType}d (mock)`);
       } else {
         // Real API call
-        const endpoint = `http://145.223.21.62:5021/api/kyc/${selectedRequest.id}/status`;
+        const endpoint = `http://151.106.125.212:5021/api/kyc/${selectedRequest.id}/status`;
         const payload = { 
           status: actionType === 'approve' ? 'approved' : 'rejected' 
         };
@@ -317,7 +317,7 @@ const KycRequests = () => {
                           }
                         }}
                         onClick={() => handleOpenImage(
-                          `http://145.223.21.62:5021/${request.id_document_path}`, 
+                          `http://151.106.125.212:5021/${request.id_document_path}`, 
                           'ID Document'
                         )}
                       >
@@ -327,7 +327,7 @@ const KycRequests = () => {
                               // Use placeholder image for demo purposes when using mock data
                               src={useMockData 
                                 ? `/api/placeholder/300/200` 
-                                : `http://145.223.21.62:5021/${request.id_document_path}`} 
+                                : `http://151.106.125.212:5021/${request.id_document_path}`} 
                               alt="ID Document" 
                               style={{ 
                                 objectFit: 'contain', 
@@ -374,7 +374,7 @@ const KycRequests = () => {
                           }
                         }}
                         onClick={() => handleOpenImage(
-                          `http://145.223.21.62:5021/${request.selfie_with_id_path}`, 
+                          `http://151.106.125.212:5021/${request.selfie_with_id_path}`, 
                           'Selfie with ID'
                         )}
                       >
@@ -384,7 +384,7 @@ const KycRequests = () => {
                               // Use placeholder image for demo purposes when using mock data
                               src={useMockData 
                                 ? `/api/placeholder/300/200` 
-                                : `http://145.223.21.62:5021/${request.selfie_with_id_path}`} 
+                                : `http://151.106.125.212:5021/${request.selfie_with_id_path}`} 
                               alt="Selfie with ID" 
                               style={{ 
                                 objectFit: 'contain', 

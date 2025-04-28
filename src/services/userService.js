@@ -1,6 +1,6 @@
 import axios from '../utils/api';
 
-const API_URL = 'http://145.223.21.62:5021/api';
+const API_URL = 'http://151.106.125.212:5021/api';
 
 export const getAllUsers = async () => {
   try {

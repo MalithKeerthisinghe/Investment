@@ -27,7 +27,7 @@ const UserList = () => {
       setIsLoading(true);
       setError('');
 
-      const response = await axios.get('http://145.223.21.62:5021/api/users', {
+      const response = await axios.get('http://151.106.125.212:5021/api/users', {
         withCredentials: false,
       });
 
